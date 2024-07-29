@@ -25,7 +25,7 @@ const ImageUploader = () => {
     };
 
     const addGifInstance = (gif) => {
-        setGifInstances([...gifInstances, { gif: gif, x: 0, y: 0, width: 100, height: 100 }]);
+        setGifInstances([...gifInstances, { gif: gif, x: 0, y: 0}]);
     };
 
     const removeGifInstance = (index) => {
@@ -47,7 +47,7 @@ const ImageUploader = () => {
             const frameInfo = gifReader.frameInfo(i);
             const frameData = new Uint8Array(frameInfo.width * frameInfo.height * 4);
             gifReader.decodeAndBlitFrameRGBA(i, frameData);
-            frames.push({ frameData, frameInfo });
+            frames.push({ frameData, frameInfo, delay: frameInfo.delay * 10 }); // Extract delay and convert to milliseconds
         }
 
         return frames;
@@ -76,14 +76,17 @@ const ImageUploader = () => {
                 const frames = await extractFrames(instance.gif);
                 frames.forEach((frame, idx) => {
                     if (!allFrames[idx]) {
-                        allFrames[idx] = document.createElement('canvas');
-                        allFrames[idx].width = img.width;
-                        allFrames[idx].height = img.height;
-                        const frameCtx = allFrames[idx].getContext('2d');
+                        allFrames[idx] = {
+                            canvas: document.createElement('canvas'),
+                            delays: [],
+                        };
+                        allFrames[idx].canvas.width = img.width;
+                        allFrames[idx].canvas.height = img.height;
+                        const frameCtx = allFrames[idx].canvas.getContext('2d');
                         frameCtx.drawImage(img, 0, 0);
                     }
 
-                    const frameCtx = allFrames[idx].getContext('2d');
+                    const frameCtx = allFrames[idx].canvas.getContext('2d');
                     const frameImage = new ImageData(new Uint8ClampedArray(frame.frameData.buffer), frame.frameInfo.width, frame.frameInfo.height);
 
                     const tempCanvas = document.createElement('canvas');
@@ -99,10 +102,14 @@ const ImageUploader = () => {
                     resizedCtx.drawImage(tempCanvas, 0, 0, resizedCanvas.width, resizedCanvas.height);
 
                     frameCtx.drawImage(resizedCanvas, instance.x, instance.y, resizedCanvas.width, resizedCanvas.height);
+                    allFrames[idx].delays.push(frame.delay); // Collect delay for each frame
                 });
             }
 
-            allFrames.forEach(frame => gif.addFrame(frame, { delay: 100 }));
+            allFrames.forEach((frame, idx) => {
+                gif.addFrame(frame.canvas, { delay: Math.max(...frame.delays) });
+            });
+
             gif.on('finished', (blob) => {
                 const link = document.createElement('a');
                 link.href = URL.createObjectURL(blob);
@@ -151,7 +158,7 @@ const ImageUploader = () => {
                                     });
                                 }}
                                 style={{
-                                    border: '1px dashed black',
+                                    border: '1px dashed yellow',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
