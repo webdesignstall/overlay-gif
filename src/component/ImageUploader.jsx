@@ -1,5 +1,3 @@
-// components/ImageUploader.js
-
 import { useState } from 'react';
 import { Rnd } from 'react-rnd';
 import GIF from 'gif.js.optimized';
@@ -13,7 +11,7 @@ const gifs = [gif1, gif2, gif3];
 
 const ImageUploader = () => {
     const [image, setImage] = useState(null);
-    const [gifInstances, setGifInstances] = useState([]);
+    const [gifInstance, setGifInstance] = useState(null);
     const [loading, setLoading] = useState(false);
 
     const handleImageUpload = (e) => {
@@ -26,16 +24,15 @@ const ImageUploader = () => {
     };
 
     const addGifInstance = (gif) => {
-        setGifInstances([...gifInstances, { gif: gif, x: 0, y: 0, width: 100, height: 100 }]);
+        setGifInstance({ gif: gif, x: 0, y: 0, width: 100, height: 100 });
     };
 
-    const removeGifInstance = (index) => {
-        setGifInstances(gifInstances.filter((_, idx) => idx !== index));
+    const removeGifInstance = () => {
+        setGifInstance(null);
     };
 
-    const handleGifChange = (index, data) => {
-        const updatedGifs = gifInstances.map((instance, idx) => (idx === index ? { ...instance, ...data } : instance));
-        setGifInstances(updatedGifs);
+    const handleGifChange = (data) => {
+        setGifInstance((prev) => ({ ...prev, ...data }));
     };
 
     const extractFrames = async (gifUrl) => {
@@ -48,14 +45,14 @@ const ImageUploader = () => {
             const frameInfo = gifReader.frameInfo(i);
             const frameData = new Uint8Array(frameInfo.width * frameInfo.height * 4);
             gifReader.decodeAndBlitFrameRGBA(i, frameData);
-            frames.push({ frameData, frameInfo, delay: frameInfo.delay * 10 }); // Extract delay and convert to milliseconds
+            frames.push({ frameData, frameInfo, delay: frameInfo.delay * 10 });
         }
 
         return frames;
     };
 
     const exportImage = async () => {
-        setLoading(true); // Set loading to true
+        setLoading(true);
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         const img = new Image();
@@ -73,42 +70,40 @@ const ImageUploader = () => {
             });
 
             const allFrames = [];
+            const frames = await extractFrames(gifInstance.gif);
 
-            for (const instance of gifInstances) {
-                const frames = await extractFrames(instance.gif);
-                frames.forEach((frame, idx) => {
-                    if (!allFrames[idx]) {
-                        allFrames[idx] = {
-                            canvas: document.createElement('canvas'),
-                            delays: [],
-                        };
-                        allFrames[idx].canvas.width = img.width;
-                        allFrames[idx].canvas.height = img.height;
-                        const frameCtx = allFrames[idx].canvas.getContext('2d');
-                        frameCtx.drawImage(img, 0, 0);
-                    }
-
+            frames.forEach((frame, idx) => {
+                if (!allFrames[idx]) {
+                    allFrames[idx] = {
+                        canvas: document.createElement('canvas'),
+                        delays: [],
+                    };
+                    allFrames[idx].canvas.width = img.width;
+                    allFrames[idx].canvas.height = img.height;
                     const frameCtx = allFrames[idx].canvas.getContext('2d');
-                    const frameImage = new ImageData(new Uint8ClampedArray(frame.frameData.buffer), frame.frameInfo.width, frame.frameInfo.height);
+                    frameCtx.drawImage(img, 0, 0);
+                }
 
-                    const tempCanvas = document.createElement('canvas');
-                    tempCanvas.width = frame.frameInfo.width;
-                    tempCanvas.height = frame.frameInfo.height;
-                    const tempCtx = tempCanvas.getContext('2d');
-                    tempCtx.putImageData(frameImage, 0, 0);
+                const frameCtx = allFrames[idx].canvas.getContext('2d');
+                const frameImage = new ImageData(new Uint8ClampedArray(frame.frameData.buffer), frame.frameInfo.width, frame.frameInfo.height);
 
-                    const resizedCanvas = document.createElement('canvas');
-                    resizedCanvas.width = parseInt(instance.width);
-                    resizedCanvas.height = parseInt(instance.height);
-                    const resizedCtx = resizedCanvas.getContext('2d');
-                    resizedCtx.drawImage(tempCanvas, 0, 0, resizedCanvas.width, resizedCanvas.height);
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = frame.frameInfo.width;
+                tempCanvas.height = frame.frameInfo.height;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.putImageData(frameImage, 0, 0);
 
-                    frameCtx.drawImage(resizedCanvas, instance.x, instance.y, resizedCanvas.width, resizedCanvas.height);
-                    allFrames[idx].delays.push(frame.delay); // Collect delay for each frame
-                });
-            }
+                const resizedCanvas = document.createElement('canvas');
+                resizedCanvas.width = parseInt(gifInstance.width);
+                resizedCanvas.height = parseInt(gifInstance.height);
+                const resizedCtx = resizedCanvas.getContext('2d');
+                resizedCtx.drawImage(tempCanvas, 0, 0, resizedCanvas.width, resizedCanvas.height);
 
-            allFrames.forEach((frame, idx) => {
+                frameCtx.drawImage(resizedCanvas, gifInstance.x, gifInstance.y, resizedCanvas.width, resizedCanvas.height);
+                allFrames[idx].delays.push(frame.delay);
+            });
+
+            allFrames.forEach((frame) => {
                 gif.addFrame(frame.canvas, { delay: Math.max(...frame.delays) });
             });
 
@@ -117,7 +112,7 @@ const ImageUploader = () => {
                 link.href = URL.createObjectURL(blob);
                 link.download = 'exported-image.gif';
                 link.click();
-                setLoading(false); // Set loading to false
+                setLoading(false);
             });
             gif.render();
         };
@@ -159,29 +154,22 @@ const ImageUploader = () => {
                     <div
                         style={{
                             position: 'relative',
-                            width: '100%',
-                            height: '500px',
                             border: '1px solid #ddd',
                             marginTop: '20px',
                             overflow: 'hidden',
                         }}
                     >
                         <img src={image} alt="Uploaded" style={{ width: '100%', height: 'auto' }} />
-                        {gifInstances.map((instance, index) => (
+                        {gifInstance && (
                             <Rnd
-                                key={index}
-                                default={{
-                                    x: instance.x,
-                                    y: instance.y,
-                                    width: instance.width,
-                                    height: instance.height,
-                                }}
-                                onDragStop={(e, d) => handleGifChange(index, { x: d.x, y: d.y })}
+                                position={{ x: gifInstance.x, y: gifInstance.y }}
+                                size={{ width: gifInstance.width, height: gifInstance.height }}
+                                onDragStop={(e, d) => handleGifChange({ x: d.x, y: d.y })}
                                 onResizeStop={(e, direction, ref, delta, position) => {
-                                    handleGifChange(index, {
+                                    handleGifChange({
+                                        ...position,
                                         width: ref.style.width,
                                         height: ref.style.height,
-                                        ...position,
                                     });
                                 }}
                                 style={{
@@ -192,9 +180,9 @@ const ImageUploader = () => {
                                 }}
                             >
                                 <div style={{ position: 'relative' }}>
-                                    <img src={instance.gif} alt="GIF" style={{ width: instance.width, height: instance.height }} />
+                                    <img src={gifInstance.gif} alt="GIF" style={{ width: gifInstance.width, height: gifInstance.height }} />
                                     <button
-                                        onClick={() => removeGifInstance(index)}
+                                        onClick={removeGifInstance}
                                         style={{
                                             position: 'absolute',
                                             top: 0,
@@ -202,22 +190,22 @@ const ImageUploader = () => {
                                             background: 'red',
                                             color: 'white',
                                             border: 'none',
-                                            borderRadius: '50%', // Make it fully rounded
+                                            borderRadius: '50%',
                                             width: '20px',
                                             height: '20px',
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
                                             cursor: 'pointer',
-                                            padding: 0, // Ensure padding doesn't affect the shape
-                                            lineHeight: '20px', // Center the 'x' properly
+                                            padding: 0,
+                                            lineHeight: '20px',
                                         }}
                                     >
                                         &times;
                                     </button>
                                 </div>
                             </Rnd>
-                        ))}
+                        )}
                     </div>
 
                     <div
@@ -231,7 +219,7 @@ const ImageUploader = () => {
                     >
                         <p>Choose a GIF to insert:</p>
 
-                        <div style={{display: 'flex', gap: '10px' }}>
+                        <div style={{ display: 'flex', gap: '10px' }}>
                             {gifs.map((gif, index) => (
                                 <button key={index} onClick={() => addGifInstance(gif)}>
                                     <img width={100} height={100} src={gif} alt="GIF Thumbnail" />
