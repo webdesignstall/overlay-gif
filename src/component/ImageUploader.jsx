@@ -150,7 +150,9 @@ const ImageUploader = () => {
                 </div>
             )}
 
-            <label htmlFor="imageUpload" style={{ cursor: 'pointer', background: '#f9f9f9', padding: '15px 35px', borderRadius: '10px' }}>
+            <label htmlFor="imageUpload" style={{
+                cursor: 'pointer', background: '#f9f9f9', padding: '15px 35px', borderRadius: '10px', boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)', fontWeight: 'bold'
+            }}>
                 Upload Image
             </label>
             <input id="imageUpload" hidden type="file" accept="image/*" onChange={handleImageUpload} />
@@ -225,17 +227,17 @@ const ImageUploader = () => {
                             gap: '20px',
                         }}
                     >
-                        <p>Choose a GIF to insert:</p>
+                        <p style={{ fontWeight: 'bold' }}>Choose a GIF to insert:</p>
 
                         <div style={{ display: 'flex', gap: '10px' }}>
                             {gifs.map((gif, index) => (
-                                <button key={index} onClick={() => addGifInstance(gif)}>
+                                <button style={{ boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)' }} key={index} onClick={() => addGifInstance(gif)}>
                                     <img width={100} height={100} src={gif} alt="GIF Thumbnail" />
                                 </button>
                             ))}
                         </div>
 
-                        <button onClick={exportImage}>Export GIF</button>
+                        <button style={{ boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)' }} onClick={exportImage}>Export GIF</button>
                     </div>
                 </>
             )}
