@@ -11,6 +11,7 @@ const gifs = [gif1, gif2, gif3];
 
 const ImageUploader = () => {
     const [image, setImage] = useState(null);
+    const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
     const [gifInstance, setGifInstance] = useState(null);
     const [loading, setLoading] = useState(false);
 
@@ -18,7 +19,12 @@ const ImageUploader = () => {
         const file = e.target.files[0];
         const reader = new FileReader();
         reader.onloadend = () => {
-            setImage(reader.result);
+            const img = new Image();
+            img.src = reader.result;
+            img.onload = () => {
+                setImage(reader.result);
+                setImageDimensions({ width: img.width, height: img.height });
+            };
         };
         reader.readAsDataURL(file);
     };
@@ -157,6 +163,8 @@ const ImageUploader = () => {
                             border: '1px solid #ddd',
                             marginTop: '20px',
                             overflow: 'hidden',
+                            width: imageDimensions.width,
+                            height: imageDimensions.height
                         }}
                     >
                         <img src={image} alt="Uploaded" style={{ width: '100%', height: 'auto' }} />
