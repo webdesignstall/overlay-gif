@@ -182,6 +182,7 @@ const ImageUploader = () => {
                                         height: ref.style.height,
                                     });
                                 }}
+                                lockAspectRatio={true}
                                 style={{
                                     border: '1px dashed yellow',
                                     display: 'flex',
