@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Rnd } from 'react-rnd';
 import GIF from 'gif.js.optimized';
 import { GifReader } from 'omggif';
@@ -12,8 +12,10 @@ const gifs = [gif1, gif2, gif3];
 const ImageUploader = () => {
     const [image, setImage] = useState(null);
     const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
+    const [containerDimensions, setContainerDimensions] = useState({ width: 0, height: 0 });
     const [gifInstance, setGifInstance] = useState(null);
     const [loading, setLoading] = useState(false);
+    const containerRef = useRef(null);
 
     const handleImageUpload = (e) => {
         const file = e.target.files[0];
@@ -124,35 +126,29 @@ const ImageUploader = () => {
         };
     };
 
+    useEffect(() => {
+        if (containerRef.current) {
+            const handleResize = () => {
+                const rect = containerRef.current.getBoundingClientRect();
+                setContainerDimensions({ width: rect.width, height: rect.height });
+            };
+
+            handleResize();
+
+            window.addEventListener('resize', handleResize);
+            return () => window.removeEventListener('resize', handleResize);
+        }
+    }, [imageDimensions]);
+
     return (
-        <div>
+        <div className="image-uploader">
             {loading && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 1000,
-                }}>
-                    <div style={{
-                        width: '80px',
-                        height: '80px',
-                        border: '16px solid #f3f3f3',
-                        borderRadius: '50%',
-                        borderTop: '16px solid #3498db',
-                        animation: 'spin 2s linear infinite'
-                    }} />
+                <div className="loading-overlay">
+                    <div className="spinner" />
                 </div>
             )}
 
-            <label htmlFor="imageUpload" style={{
-                cursor: 'pointer', background: '#f9f9f9', padding: '15px 35px', borderRadius: '10px', boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)', fontWeight: 'bold'
-            }}>
+            <label htmlFor="imageUpload" className="upload-label">
                 Upload Image
             </label>
             <input id="imageUpload" hidden type="file" accept="image/*" onChange={handleImageUpload} />
@@ -160,26 +156,30 @@ const ImageUploader = () => {
             {image && (
                 <>
                     <div
-                        style={{
-                            position: 'relative',
-                            border: '1px solid #ddd',
-                            marginTop: '20px',
-                            overflow: 'hidden',
-                            width: imageDimensions.width,
-                            height: imageDimensions.height
-                        }}
+                        className="image-container"
+                        style={{ width: '100%', height: 'auto', maxWidth: '90vw' }}
+                        ref={containerRef}
                     >
                         <img src={image} alt="Uploaded" style={{ width: '100%', height: 'auto' }} />
                         {gifInstance && (
                             <Rnd
-                                position={{ x: gifInstance.x, y: gifInstance.y }}
-                                size={{ width: gifInstance.width, height: gifInstance.height }}
-                                onDragStop={(e, d) => handleGifChange({ x: d.x, y: d.y })}
+                                position={{
+                                    x: gifInstance.x * (containerDimensions.width / imageDimensions.width),
+                                    y: gifInstance.y * (containerDimensions.height / imageDimensions.height),
+                                }}
+                                size={{
+                                    width: gifInstance.width * (containerDimensions.width / imageDimensions.width),
+                                    height: gifInstance.height * (containerDimensions.height / imageDimensions.height),
+                                }}
+                                onDragStop={(e, d) => handleGifChange({
+                                    x: d.x * (imageDimensions.width / containerDimensions.width),
+                                    y: d.y * (imageDimensions.height / containerDimensions.height),
+                                })}
                                 onResizeStop={(e, direction, ref, delta, position) => {
                                     handleGifChange({
                                         ...position,
-                                        width: ref.style.width,
-                                        height: ref.style.height,
+                                        width: parseFloat(ref.style.width) * (imageDimensions.width / containerDimensions.width),
+                                        height: parseFloat(ref.style.height) * (imageDimensions.height / containerDimensions.height),
                                     });
                                 }}
                                 lockAspectRatio={true}
@@ -191,26 +191,10 @@ const ImageUploader = () => {
                                 }}
                             >
                                 <div style={{ position: 'relative' }}>
-                                    <img src={gifInstance.gif} alt="GIF" style={{ width: gifInstance.width, height: gifInstance.height }} />
+                                    <img src={gifInstance.gif} alt="GIF" style={{ width: '100%', height: '100%' }} />
                                     <button
                                         onClick={removeGifInstance}
-                                        style={{
-                                            position: 'absolute',
-                                            top: 0,
-                                            right: 0,
-                                            background: 'red',
-                                            color: 'white',
-                                            border: 'none',
-                                            borderRadius: '50%',
-                                            width: '20px',
-                                            height: '20px',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            cursor: 'pointer',
-                                            padding: 0,
-                                            lineHeight: '20px',
-                                        }}
+                                        className="remove-gif-button"
                                     >
                                         &times;
                                     </button>
@@ -219,38 +203,165 @@ const ImageUploader = () => {
                         )}
                     </div>
 
-                    <div
-                        style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            margin: '20px 0',
-                            gap: '20px',
-                        }}
-                    >
-                        <p style={{ fontWeight: 'bold' }}>Choose a GIF to insert:</p>
+                    <div className="controls">
+                        <p className="choose-gif-text">Choose a GIF to insert:</p>
 
-                        <div style={{ display: 'flex', gap: '10px' }}>
+                        <div className="gif-options">
                             {gifs.map((gif, index) => (
-                                <button style={{ boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)' }} key={index} onClick={() => addGifInstance(gif)}>
+                                <button className="gif-button" key={index} onClick={() => addGifInstance(gif)}>
                                     <img width={100} height={100} src={gif} alt="GIF Thumbnail" />
                                 </button>
                             ))}
                         </div>
 
-                        <button style={{ boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)' }} onClick={exportImage}>Export GIF</button>
+                        <button className="export-button" onClick={exportImage}>Export GIF</button>
                     </div>
                 </>
             )}
 
-            <style>
-                {`
-                    @keyframes spin {
-                        0% { transform: rotate(0deg); }
-                        100% { transform: rotate(360deg); }
+            <style jsx>{`
+                .image-uploader {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    padding: 20px;
+                }
+
+                .upload-label {
+                    cursor: pointer;
+                    background: #f9f9f9;
+                    padding: 15px 35px;
+                    border-radius: 10px;
+                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                    font-weight: bold;
+                    text-align: center;
+                }
+
+                .image-container {
+                    position: relative;
+                    border: 1px solid #ddd;
+                    margin-top: 20px;
+                    overflow: hidden;
+                }
+
+                .controls {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    margin: 20px 0;
+                    gap: 20px;
+                }
+
+                .choose-gif-text {
+                    font-weight: bold;
+                }
+
+                .gif-options {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 10px;
+                    justify-content: center;
+                }
+
+                .gif-button {
+                    padding: 0;
+                    background: none;
+                    border: none;
+                    cursor: pointer;
+                }
+
+                .export-button {
+                    padding: 10px 20px;
+                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                    background: #3498db;
+                    color: white;
+                    border: none;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    font-weight: bold;
+                }
+
+                .loading-overlay {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-color: rgba(0, 0, 0, 0.5);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 1000;
+                }
+
+                .spinner {
+                    width: 80px;
+                    height: 80px;
+                    border: 16px solid #f3f3f3;
+                    border-radius: 50%;
+                    border-top: 16px solid #3498db;
+                    animation: spin 2s linear infinite;
+                }
+
+                .remove-gif-button {
+                    position: absolute;
+                    top: 0;
+                    right: 0;
+                    background: red;
+                    color: white;
+                    border: none;
+                    border-radius: 50%;
+                    width: 20px;
+                    height: 20px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    padding: 0;
+                    line-height: 20px;
+                }
+
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+
+                @media (max-width: 768px) {
+                    .upload-label {
+                        padding: 10px 20px;
                     }
-                `}
-            </style>
+
+                    .image-container {
+                        max-width: 100%;
+                    }
+
+                    .gif-button img {
+                        width: 80px;
+                        height: 80px;
+                    }
+
+                    .export-button {
+                        padding: 8px 16px;
+                    }
+                }
+
+                @media (max-width: 480px) {
+                    .upload-label {
+                        padding: 8px 15px;
+                        font-size: 14px;
+                    }
+
+                    .gif-button img {
+                        width: 60px;
+                        height: 60px;
+                    }
+
+                    .export-button {
+                        padding: 6px 12px;
+                        font-size: 14px;
+                    }
+                }
+            `}</style>
         </div>
     );
 };
