@@ -360,6 +360,9 @@ const ImageUploader = () => {
                         padding: 6px 12px;
                         font-size: 14px;
                     }
+                    .remove-gif-button {
+                        display: none;
+                    }
                 }
             `}</style>
         </div>
