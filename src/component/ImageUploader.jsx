@@ -117,44 +117,16 @@ const ImageUploader = () => {
                 gif.addFrame(frame.canvas, { delay: Math.max(...frame.delays) });
             });
 
-            /*gif.on('finished', (blob) => {
+            gif.on('finished', (blob) => {
                 const link = document.createElement('a');
                 link.href = URL.createObjectURL(blob);
                 link.download = 'exported-image.gif';
                 link.click();
 
-                console.log(link)
-
                 setLoading(false);
-            });*/
-
-            gif.on('finished', async (blob) => {
-                try {
-                    // Create a FormData object to hold the GIF
-                    const formData = new FormData();
-                    formData.append('file', blob, 'exported-image.gif');
-                    formData.append('key', '7pyCwZxr5b8punU2TmsI'); // Replace with your ShortPixel API key
-
-                    // Upload to ShortPixel
-                    const response = await axios.post('https://api.shortpixel.com/v2/reducer.php', formData, {
-                        headers: {
-                            'Content-Type': 'multipart/form-data',
-                        },
-                    });
-
-                    const optimizedGifUrl = response.data.Data[0].LossyURL;
-
-                    // Download the optimized GIF
-                    const link = document.createElement('a');
-                    link.href = optimizedGifUrl;
-                    link.download = 'optimized-image.gif';
-                    link.click();
-                } catch (error) {
-                    console.error('Error uploading to ShortPixel:', error);
-                } finally {
-                    setLoading(false);
-                }
             });
+
+
             gif.render();
         };
     };
