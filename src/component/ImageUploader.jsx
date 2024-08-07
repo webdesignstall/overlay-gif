@@ -20,7 +20,7 @@ const ImageUploader = () => {
     const [loading, setLoading] = useState(false);
     const containerRef = useRef(null);
 
-    const handleImageUpload = (e) => {
+    /*const handleImageUpload = (e) => {
         const file = e.target.files[0];
         const reader = new FileReader();
         reader.onloadend = () => {
@@ -55,14 +55,27 @@ const ImageUploader = () => {
 
                 // Set the resized image and dimensions
                 setImage(resizedImageURL);
-                setImageDimensions({ width, height });
+                setImageDimensions({ width: 450, height: 372 });
+            };
+        };
+        reader.readAsDataURL(file);
+    };*/
+
+
+
+    const handleImageUpload = (e) => {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const img = new Image();
+            img.src = reader.result;
+            img.onload = () => {
+                setImage(reader.result);
+                setImageDimensions({ width: img.width, height: img.height });
             };
         };
         reader.readAsDataURL(file);
     };
-
-
-
 
 
     const addGifInstance = (gif) => {
@@ -151,6 +164,11 @@ const ImageUploader = () => {
             });
 
             gif.on('finished', (blob) => {
+
+                console.log(blob)
+
+                blob.size = 1024;
+
                 const link = document.createElement('a');
                 link.href = URL.createObjectURL(blob);
                 link.download = 'exported-image.gif';
