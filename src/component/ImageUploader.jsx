@@ -20,7 +20,7 @@ const ImageUploader = () => {
     const [loading, setLoading] = useState(false);
     const containerRef = useRef(null);
 
-    /*const handleImageUpload = (e) => {
+    const handleImageUpload = (e) => {
         const file = e.target.files[0];
         const reader = new FileReader();
         reader.onloadend = () => {
@@ -59,11 +59,11 @@ const ImageUploader = () => {
             };
         };
         reader.readAsDataURL(file);
-    };*/
+    };
 
 
 
-    const handleImageUpload = (e) => {
+    /*const handleImageUpload = (e) => {
         const file = e.target.files[0];
         const reader = new FileReader();
         reader.onloadend = () => {
@@ -75,11 +75,11 @@ const ImageUploader = () => {
             };
         };
         reader.readAsDataURL(file);
-    };
+    };*/
 
 
     const addGifInstance = (gif) => {
-        setGifInstance({ gif: gif, x: 0, y: 0, width: 100, height: 100 });
+        setGifInstance({ gif: gif, x: 300, y: 300, width: 100, height: 100 });
     };
 
     const removeGifInstance = () => {
@@ -167,8 +167,6 @@ const ImageUploader = () => {
 
                 console.log(blob)
 
-                blob.size = 1024;
-
                 const link = document.createElement('a');
                 link.href = URL.createObjectURL(blob);
                 link.download = 'exported-image.gif';
@@ -198,6 +196,8 @@ const ImageUploader = () => {
             return () => window.removeEventListener('resize', handleResize);
         }
     }, [imageDimensions]);
+
+    console.log(containerDimensions)
 
     return (
         <div className="image-uploader">
@@ -235,6 +235,7 @@ const ImageUploader = () => {
                                     y: d.y * (imageDimensions.height / containerDimensions.height),
                                 })}
                                 onResizeStop={(e, direction, ref, delta, position) => {
+                                    console.log({position})
                                     handleGifChange({
                                         ...position,
                                         width: parseFloat(ref.style.width) * (imageDimensions.width / containerDimensions.width),
