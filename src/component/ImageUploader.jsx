@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { Rnd } from 'react-rnd';
 import GIF from 'gif.js.optimized';
 import { GifReader } from 'omggif';
-import axios from 'axios';
 
 
 import gif1 from '../../public/gif/dancing_dog.gif';
@@ -11,8 +10,10 @@ import gif3 from '../../public/gif/200w.gif';
 
 const gifs = [gif1, gif2, gif3];
 
+
+
 const ImageUploader = () => {
-    const [image, setImage] = useState(null);
+    const [image, setImage] = useState('');
     const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
     const [containerDimensions, setContainerDimensions] = useState({ width: 0, height: 0 });
     const [gifInstance, setGifInstance] = useState(null);
@@ -25,13 +26,44 @@ const ImageUploader = () => {
         reader.onloadend = () => {
             const img = new Image();
             img.src = reader.result;
+
             img.onload = () => {
-                setImage(reader.result);
-                setImageDimensions({ width: img.width, height: img.height });
+                const maxWidth = parseInt(import.meta.env.VITE_IMAGE_WIDTH);
+                let width = img.width;
+                let height = img.height;
+
+                // Calculate the aspect ratio
+                const aspectRatio = width / height;
+
+                // Adjust width and height according to the maxWidth
+                if (width > maxWidth) {
+                    width = maxWidth;
+                    height = Math.round(maxWidth / aspectRatio);
+                }
+
+                // Create a canvas to resize the image
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+
+                // Draw the image on the canvas with the new dimensions
+                ctx.drawImage(img, 0, 0, width, height);
+
+                // Get the resized image data URL
+                const resizedImageURL = canvas.toDataURL();
+
+                // Set the resized image and dimensions
+                setImage(resizedImageURL);
+                setImageDimensions({ width, height });
             };
         };
         reader.readAsDataURL(file);
     };
+
+
+
+
 
     const addGifInstance = (gif) => {
         setGifInstance({ gif: gif, x: 0, y: 0, width: 100, height: 100 });
@@ -71,6 +103,7 @@ const ImageUploader = () => {
         img.onload = async () => {
             canvas.width = img.width;
             canvas.height = img.height;
+
             ctx.drawImage(img, 0, 0);
 
             const gif = new GIF({
@@ -227,152 +260,10 @@ const ImageUploader = () => {
                 </>
             )}
 
-            <style jsx>{`
-                .image-uploader {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    padding: 20px;
-                }
+            {/* eslint-disable-next-line react/no-unknown-property */}
+            {/*<style jsx>{`
 
-                .upload-label {
-                    cursor: pointer;
-                    background: #f9f9f9;
-                    padding: 15px 35px;
-                    border-radius: 10px;
-                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-                    font-weight: bold;
-                    text-align: center;
-                }
-
-                .image-container {
-                    position: relative;
-                    border: 1px solid #ddd;
-                    margin-top: 20px;
-                    overflow: hidden;
-                }
-
-                .controls {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    margin: 20px 0;
-                    gap: 20px;
-                }
-
-                .choose-gif-text {
-                    font-weight: bold;
-                }
-
-                .gif-options {
-                    display: flex;
-                    flex-wrap: wrap;
-                    gap: 10px;
-                    justify-content: center;
-                }
-
-                .gif-button {
-                    padding: 0;
-                    background: none;
-                    border: none;
-                    cursor: pointer;
-                }
-
-                .export-button {
-                    padding: 10px 20px;
-                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-                    background: #3498db;
-                    color: white;
-                    border: none;
-                    border-radius: 5px;
-                    cursor: pointer;
-                    font-weight: bold;
-                }
-
-                .loading-overlay {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    background-color: rgba(0, 0, 0, 0.5);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    z-index: 1000;
-                }
-
-                .spinner {
-                    width: 80px;
-                    height: 80px;
-                    border: 16px solid #f3f3f3;
-                    border-radius: 50%;
-                    border-top: 16px solid #3498db;
-                    animation: spin 2s linear infinite;
-                }
-
-                .remove-gif-button {
-                    position: absolute;
-                    top: 0;
-                    right: 0;
-                    background: red;
-                    color: white;
-                    border: none;
-                    border-radius: 50%;
-                    width: 20px;
-                    height: 20px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    cursor: pointer;
-                    padding: 0;
-                    line-height: 20px;
-                }
-
-                @keyframes spin {
-                    0% { transform: rotate(0deg); }
-                    100% { transform: rotate(360deg); }
-                }
-
-                @media (max-width: 768px) {
-                    .upload-label {
-                        padding: 10px 20px;
-                    }
-
-                    .image-container {
-                        max-width: 100%;
-                    }
-
-                    .gif-button img {
-                        width: 80px;
-                        height: 80px;
-                    }
-
-                    .export-button {
-                        padding: 8px 16px;
-                    }
-                }
-
-                @media (max-width: 480px) {
-                    .upload-label {
-                        padding: 8px 15px;
-                        font-size: 14px;
-                    }
-
-                    .gif-button img {
-                        width: 60px;
-                        height: 60px;
-                    }
-
-                    .export-button {
-                        padding: 6px 12px;
-                        font-size: 14px;
-                    }
-                    .remove-gif-button {
-                        display: none;
-                    }
-                }
-            `}</style>
+            `}</style>*/}
         </div>
     );
 };
