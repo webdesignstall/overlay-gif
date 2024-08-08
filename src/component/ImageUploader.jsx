@@ -7,10 +7,9 @@ import { GifReader } from 'omggif';
 import gif1 from '../../public/gif/dancing_dog.gif';
 import gif2 from '../../public/gif/pikachu.gif';
 import gif3 from '../../public/gif/200w.gif';
+import axios from "axios";
 
 const gifs = [gif1, gif2, gif3];
-
-
 
 const ImageUploader = () => {
     const [image, setImage] = useState('');
@@ -20,66 +19,29 @@ const ImageUploader = () => {
     const [loading, setLoading] = useState(false);
     const containerRef = useRef(null);
 
-    const handleImageUpload = (e) => {
+    const handleImageUpload = async (e) => {
         const file = e.target.files[0];
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            const img = new Image();
-            img.src = reader.result;
+        const formData = new FormData();
+        formData.append('image', file);
 
-            img.onload = () => {
-                const maxWidth = parseInt(import.meta.env.VITE_IMAGE_WIDTH);
-                let width = img.width;
-                let height = img.height;
+        try {
+            setLoading(true);
+            const response = await axios.post(`${import.meta.env.VITE_API_URL}/resize`, formData, {
+                responseType: 'arraybuffer'
+            });
+            const blob = new Blob([response.data], { type: response.headers['content-type'] });
+            const url = URL.createObjectURL(blob);
+            setImage(url)
+            setLoading(false);
 
-                // Calculate the aspect ratio
-                const aspectRatio = width / height;
-
-                // Adjust width and height according to the maxWidth
-                if (width > maxWidth) {
-                    width = maxWidth;
-                    height = Math.round(maxWidth / aspectRatio);
-                }
-
-                // Create a canvas to resize the image
-                const canvas = document.createElement('canvas');
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-
-                // Draw the image on the canvas with the new dimensions
-                ctx.drawImage(img, 0, 0, width, height);
-
-                // Get the resized image data URL
-                const resizedImageURL = canvas.toDataURL();
-
-                // Set the resized image and dimensions
-                setImage(resizedImageURL);
-                setImageDimensions({ width: 450, height: 372 });
-            };
-        };
-        reader.readAsDataURL(file);
+        } catch (error) {
+            console.error('Error resizing image:', error);
+        }
     };
 
 
-
-    /*const handleImageUpload = (e) => {
-        const file = e.target.files[0];
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            const img = new Image();
-            img.src = reader.result;
-            img.onload = () => {
-                setImage(reader.result);
-                setImageDimensions({ width: img.width, height: img.height });
-            };
-        };
-        reader.readAsDataURL(file);
-    };*/
-
-
     const addGifInstance = (gif) => {
-        setGifInstance({ gif: gif, x: 300, y: 300, width: 100, height: 100 });
+        setGifInstance({ gif: gif, x: 0, y: 0, width: 100, height: 100 });
     };
 
     const removeGifInstance = () => {
@@ -165,8 +127,6 @@ const ImageUploader = () => {
 
             gif.on('finished', (blob) => {
 
-                console.log(blob)
-
                 const link = document.createElement('a');
                 link.href = URL.createObjectURL(blob);
                 link.download = 'exported-image.gif';
@@ -197,8 +157,6 @@ const ImageUploader = () => {
         }
     }, [imageDimensions]);
 
-    console.log(containerDimensions)
-
     return (
         <div className="image-uploader">
             {loading && (
@@ -219,7 +177,7 @@ const ImageUploader = () => {
                         style={{ width: '100%', height: 'auto', maxWidth: '90vw' }}
                         ref={containerRef}
                     >
-                        <img src={image} alt="Uploaded" style={{ width: '100%', height: 'auto' }} />
+                        <img onLoad={(e) => setImageDimensions({width: e.target.naturalWidth, height: e.target.naturalHeight})} src={image} alt="Uploaded" style={{ width: '100%', height: 'auto' }} />
                         {gifInstance && (
                             <Rnd
                                 position={{
