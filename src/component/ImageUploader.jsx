@@ -50,7 +50,8 @@ const ImageUploader = () => {
 
     const handleGifChange = (data) => {
         setGifInstance((prev) => ({ ...prev, ...data }));
-    };
+    }
+
 
     const extractFrames = async (gifUrl) => {
         const response = await fetch(gifUrl);
@@ -59,6 +60,7 @@ const ImageUploader = () => {
         const frames = [];
 
         for (let i = 0; i < gifReader.numFrames(); i++) {
+
             const frameInfo = gifReader.frameInfo(i);
             const frameData = new Uint8Array(frameInfo.width * frameInfo.height * 4);
             gifReader.decodeAndBlitFrameRGBA(i, frameData);
