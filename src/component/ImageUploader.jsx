@@ -127,7 +127,7 @@ const ImageUploader = () => {
                 gif.addFrame(frame.canvas, { delay: Math.max(...frame.delays) });
             });
 
-            gif.on('finished', (blob) => {
+            /*gif.on('finished', (blob) => {
 
                 const link = document.createElement('a');
                 link.href = URL.createObjectURL(blob);
@@ -135,7 +135,38 @@ const ImageUploader = () => {
                 link.click();
 
                 setLoading(false);
+            });*/
+
+
+            gif.on('finished', async (blob) => {
+                // Send the GIF to the server for compression
+                const formData = new FormData();
+                formData.append('file', blob, 'exported-image.gif');
+
+                try {
+                    const response = await fetch(`${import.meta.env.VITE_API_URL}/compress-gif`, {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    console.log({response})
+
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+
+                    const compressedBlob = await response.blob();
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(compressedBlob);
+                    link.download = 'compressed-image.gif';
+                    link.click();
+                } catch (error) {
+                    console.error('Error:', error);
+                } finally {
+                    setLoading(false);
+                }
             });
+
 
 
             gif.render();
